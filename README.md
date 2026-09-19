@@ -57,7 +57,7 @@ flowchart TB
     RA --> O2[("OSD<br/>ceph-work-02")]
     RA --> O3[("OSD<br/>ceph-work-03…06")]
     O1 <-.->|"replication<br/>storage network"| O2
-    O2 <-.->|" "| O3
+    O2 <-.-> O3
     MN["MON ×3 · MGR · MDS"] --- RA
   end
 
@@ -68,7 +68,7 @@ flowchart TB
     PB2["pod · work-02"] --> LV2["logical volume<br/>vg-topolvm-work-02"]
     LV2 --> NV2[("NVMe — work-02")]
     NV -.->|"VolSync · pg_dumpall"| S3[("MinIO")]
-    NV2 -.->|" "| S3
+    NV2 -.-> S3
   end
 ```
 

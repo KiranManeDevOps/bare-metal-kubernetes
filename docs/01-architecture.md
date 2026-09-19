@@ -203,8 +203,8 @@ flowchart TB
   end
 
   OSD1 <-.->|"replication · recovery · scrubbing<br/>storage network 10.0.30.0/24"| OSD2
-  OSD2 <-.->|" "| OSD3
-  OSD3 <-.->|" "| OSDN
+  OSD2 <-.-> OSD3
+  OSD3 <-.-> OSDN
 ```
 
 ### What differs from Cluster B

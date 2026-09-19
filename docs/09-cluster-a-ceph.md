@@ -54,7 +54,7 @@ flowchart TB
   RADOS --> OSD3[("OSD<br/>ceph-work-03 .. 06")]
 
   OSD1 <-.->|"replication + recovery + scrub<br/>10.0.30.0/24"| OSD2
-  OSD2 <-.->|" "| OSD3
+  OSD2 <-.-> OSD3
 ```
 
 **Why the split matters operationally.** Each daemon fails differently. Losing
