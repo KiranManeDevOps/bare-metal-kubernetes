@@ -1,0 +1,98 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1040 450" width="1040" height="450" role="img" aria-label="Platform architecture: user traffic reaches applications through the ingress VIP and Traefik, while operator kubectl traffic reaches the control plane through a separate API VIP; the two paths never meet. Application volumes are node-local and are copied off-node to object storage by VolSync restic and pg_dumpall.">
+  <defs>
+    <marker id="a" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+      <path d="M 0 0 L 10 5 L 0 10 z" fill="#e6edf3"/>
+    </marker>
+    <marker id="ab" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+      <path d="M 0 0 L 10 5 L 0 10 z" fill="#4493f8"/>
+    </marker>
+    <marker id="ag" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+      <path d="M 0 0 L 10 5 L 0 10 z" fill="#3fb950"/>
+    </marker>
+    <marker id="am" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+      <path d="M 0 0 L 10 5 L 0 10 z" fill="#9198a1"/>
+    </marker>
+  </defs>
+
+  <rect x="0" y="0" width="1040" height="450" fill="none"/>
+
+  <!-- lane separators -->
+  <line x1="30" y1="132" x2="1010" y2="132" stroke="#3d444d" stroke-width="1" stroke-dasharray="2 4"/>
+  <line x1="30" y1="248" x2="1010" y2="248" stroke="#3d444d" stroke-width="1" stroke-dasharray="2 4"/>
+
+  <!-- lane labels -->
+  <text x="30" y="30" font-family="system-ui, sans-serif" font-size="11" font-weight="600" fill="#4493f8" letter-spacing="0.08em">APPLICATION PLANE</text>
+  <text x="30" y="156" font-family="system-ui, sans-serif" font-size="11" font-weight="600" fill="#3fb950" letter-spacing="0.08em">CLUSTER-API PLANE</text>
+  <text x="30" y="272" font-family="system-ui, sans-serif" font-size="11" font-weight="600" fill="#9198a1" letter-spacing="0.08em">STORAGE AND BACKUP</text>
+
+  <!-- ===== lane A : application plane ===== -->
+  <rect x="40" y="46" width="140" height="56" rx="6" fill="#0d1117" stroke="#3d444d" stroke-width="1.5"/>
+  <text x="110" y="70" text-anchor="middle" font-family="system-ui, sans-serif" font-size="13" font-weight="600" fill="#e6edf3">Users</text>
+  <text x="110" y="87" text-anchor="middle" font-family="system-ui, sans-serif" font-size="11" fill="#9198a1">*.example.com</text>
+
+  <rect x="250" y="46" width="190" height="56" rx="6" fill="#0d1117" stroke="#4493f8" stroke-width="1.5"/>
+  <text x="345" y="70" text-anchor="middle" font-family="system-ui, sans-serif" font-size="13" font-weight="600" fill="#e6edf3">kube-vip ingress VIP</text>
+  <text x="345" y="87" text-anchor="middle" font-family="system-ui, sans-serif" font-size="11" fill="#9198a1">10.0.10.60 · .61 (QUIC)</text>
+
+  <rect x="510" y="46" width="180" height="56" rx="6" fill="#0d1117" stroke="#3d444d" stroke-width="1.5"/>
+  <text x="600" y="70" text-anchor="middle" font-family="system-ui, sans-serif" font-size="13" font-weight="600" fill="#e6edf3">Traefik</text>
+  <text x="600" y="87" text-anchor="middle" font-family="system-ui, sans-serif" font-size="11" fill="#9198a1">DaemonSet · cert-manager</text>
+
+  <rect x="760" y="46" width="210" height="56" rx="6" fill="#0d1117" stroke="#3d444d" stroke-width="1.5"/>
+  <text x="865" y="70" text-anchor="middle" font-family="system-ui, sans-serif" font-size="13" font-weight="600" fill="#e6edf3">Application pods</text>
+  <text x="865" y="87" text-anchor="middle" font-family="system-ui, sans-serif" font-size="11" fill="#9198a1">work-01 … work-04</text>
+
+  <line x1="186" y1="74" x2="242" y2="74" stroke="#4493f8" stroke-width="1.5" marker-end="url(#ab)"/>
+  <text x="214" y="64" text-anchor="middle" font-family="system-ui, sans-serif" font-size="10" fill="#9198a1">HTTPS</text>
+
+  <line x1="446" y1="74" x2="502" y2="74" stroke="#4493f8" stroke-width="1.5" marker-end="url(#ab)"/>
+  <text x="474" y="64" text-anchor="middle" font-family="system-ui, sans-serif" font-size="10" fill="#9198a1">L2 / ARP</text>
+
+  <line x1="696" y1="74" x2="752" y2="74" stroke="#4493f8" stroke-width="1.5" marker-end="url(#ab)"/>
+  <text x="724" y="64" text-anchor="middle" font-family="system-ui, sans-serif" font-size="10" fill="#9198a1">Ingress</text>
+
+  <!-- ===== lane B : cluster-api plane ===== -->
+  <rect x="40" y="170" width="140" height="56" rx="6" fill="#0d1117" stroke="#3d444d" stroke-width="1.5"/>
+  <text x="110" y="194" text-anchor="middle" font-family="system-ui, sans-serif" font-size="13" font-weight="600" fill="#e6edf3">Operators</text>
+  <text x="110" y="211" text-anchor="middle" font-family="system-ui, sans-serif" font-size="11" fill="#9198a1">kubectl</text>
+
+  <rect x="250" y="170" width="190" height="56" rx="6" fill="#0d1117" stroke="#3fb950" stroke-width="1.5"/>
+  <text x="345" y="194" text-anchor="middle" font-family="system-ui, sans-serif" font-size="13" font-weight="600" fill="#e6edf3">API VIP</text>
+  <text x="345" y="211" text-anchor="middle" font-family="system-ui, sans-serif" font-size="11" fill="#9198a1">10.0.10.10 · keepalived</text>
+
+  <rect x="510" y="170" width="180" height="56" rx="6" fill="#0d1117" stroke="#3d444d" stroke-width="1.5"/>
+  <text x="600" y="194" text-anchor="middle" font-family="system-ui, sans-serif" font-size="13" font-weight="600" fill="#e6edf3">cp-01</text>
+  <text x="600" y="211" text-anchor="middle" font-family="system-ui, sans-serif" font-size="11" fill="#9198a1">etcd · apiserver</text>
+
+  <line x1="186" y1="198" x2="242" y2="198" stroke="#3fb950" stroke-width="1.5" marker-end="url(#ag)"/>
+  <line x1="446" y1="198" x2="502" y2="198" stroke="#3fb950" stroke-width="1.5" marker-end="url(#ag)"/>
+  <text x="474" y="188" text-anchor="middle" font-family="system-ui, sans-serif" font-size="10" fill="#9198a1">6444 → 6443</text>
+
+  <!-- control plane schedules the edge (management, not data) -->
+  <line x1="560" y1="164" x2="560" y2="110" stroke="#9198a1" stroke-width="1.3" stroke-dasharray="4 3" marker-end="url(#am)"/>
+  <text x="572" y="140" font-family="system-ui, sans-serif" font-size="10" fill="#9198a1">schedules · configures</text>
+
+  <!-- ===== lane C : storage and backup ===== -->
+  <rect x="760" y="286" width="210" height="56" rx="6" fill="#0d1117" stroke="#3d444d" stroke-width="1.5"/>
+  <text x="865" y="310" text-anchor="middle" font-family="system-ui, sans-serif" font-size="13" font-weight="600" fill="#e6edf3">Node-local volume</text>
+  <text x="865" y="327" text-anchor="middle" font-family="system-ui, sans-serif" font-size="11" fill="#9198a1">vg-topolvm-work-0N → NVMe</text>
+
+  <rect x="470" y="286" width="200" height="56" rx="6" fill="#161b22" stroke="#3d444d" stroke-width="1.5"/>
+  <text x="570" y="310" text-anchor="middle" font-family="system-ui, sans-serif" font-size="13" font-weight="600" fill="#e6edf3">MinIO — off-node</text>
+  <text x="570" y="327" text-anchor="middle" font-family="system-ui, sans-serif" font-size="11" fill="#9198a1">restic repos + SQL dumps</text>
+
+  <!-- pod to its volume -->
+  <line x1="900" y1="108" x2="900" y2="280" stroke="#e6edf3" stroke-width="1.5" marker-end="url(#a)"/>
+  <text x="910" y="200" font-family="system-ui, sans-serif" font-size="10" fill="#9198a1">PVC · RWO — one node</text>
+
+  <!-- volume to object storage -->
+  <polyline points="800,342 800,372 620,372 620,348" fill="none" stroke="#9198a1" stroke-width="1.3" stroke-dasharray="4 3" marker-end="url(#am)"/>
+  <text x="710" y="389" text-anchor="middle" font-family="system-ui, sans-serif" font-size="10" fill="#9198a1">VolSync + restic · nightly</text>
+
+  <!-- app-level dumps to object storage -->
+  <polyline points="790,108 790,266 545,266 545,280" fill="none" stroke="#9198a1" stroke-width="1.3" stroke-dasharray="4 3" marker-end="url(#am)"/>
+  <text x="640" y="260" text-anchor="middle" font-family="system-ui, sans-serif" font-size="10" fill="#9198a1">pg_dumpall · nightly</text>
+
+  <!-- the claim -->
+  <text x="30" y="424" font-family="system-ui, sans-serif" font-size="11" fill="#9198a1">The two planes share no path: an application user never reaches the API, and cluster access never depends on the ingress. Volumes never leave their node — the copies do.</text>
+</svg>

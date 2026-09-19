@@ -1,0 +1,87 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1040 400" width="1040" height="400" role="img" aria-label="The two storage models compared by write path. With Rook-Ceph a write crosses the network to a primary OSD, is replicated to two more OSDs, and is acknowledged only after they confirm. With TopoLVM the write goes straight to a logical volume on the same node and is acknowledged immediately, with redundancy provided by scheduled backups to object storage instead.">
+  <defs>
+    <marker id="b1" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+      <path d="M 0 0 L 10 5 L 0 10 z" fill="#e6edf3"/>
+    </marker>
+    <marker id="b2" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+      <path d="M 0 0 L 10 5 L 0 10 z" fill="#d29922"/>
+    </marker>
+    <marker id="b3" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+      <path d="M 0 0 L 10 5 L 0 10 z" fill="#3fb950"/>
+    </marker>
+  </defs>
+
+  <rect x="0" y="0" width="1040" height="400" fill="none"/>
+  <line x1="520" y1="24" x2="520" y2="360" stroke="#3d444d" stroke-width="1" stroke-dasharray="2 4"/>
+
+  <!-- ================= left: replicated ================= -->
+  <text x="30" y="30" font-family="system-ui, sans-serif" font-size="12" font-weight="600" fill="#d29922" letter-spacing="0.06em">ROOK-CEPH — REPLICATED</text>
+
+  <rect x="30" y="56" width="120" height="48" rx="6" fill="#0d1117" stroke="#3d444d" stroke-width="1.5"/>
+  <text x="90" y="85" text-anchor="middle" font-family="system-ui, sans-serif" font-size="13" font-weight="600" fill="#e6edf3">pod</text>
+
+  <rect x="250" y="56" width="180" height="48" rx="6" fill="#0d1117" stroke="#d29922" stroke-width="1.5"/>
+  <text x="340" y="77" text-anchor="middle" font-family="system-ui, sans-serif" font-size="13" font-weight="600" fill="#e6edf3">primary OSD</text>
+  <text x="340" y="93" text-anchor="middle" font-family="system-ui, sans-serif" font-size="10" fill="#9198a1">ceph-work-01</text>
+
+  <rect x="250" y="162" width="180" height="44" rx="6" fill="#0d1117" stroke="#3d444d" stroke-width="1.5"/>
+  <text x="340" y="189" text-anchor="middle" font-family="system-ui, sans-serif" font-size="12" fill="#e6edf3">replica OSD</text>
+
+  <rect x="250" y="236" width="180" height="44" rx="6" fill="#0d1117" stroke="#3d444d" stroke-width="1.5"/>
+  <text x="340" y="263" text-anchor="middle" font-family="system-ui, sans-serif" font-size="12" fill="#e6edf3">replica OSD</text>
+
+  <line x1="156" y1="80" x2="242" y2="80" stroke="#d29922" stroke-width="1.5" marker-end="url(#b2)"/>
+  <text x="199" y="70" text-anchor="middle" font-family="system-ui, sans-serif" font-size="10" fill="#9198a1">write</text>
+  <text x="199" y="97" text-anchor="middle" font-family="system-ui, sans-serif" font-size="10" fill="#d29922">network</text>
+
+  <line x1="310" y1="110" x2="310" y2="156" stroke="#d29922" stroke-width="1.5" marker-end="url(#b2)"/>
+  <line x1="370" y1="110" x2="370" y2="230" stroke="#d29922" stroke-width="1.5" marker-end="url(#b2)"/>
+  <text x="440" y="140" font-family="system-ui, sans-serif" font-size="10" fill="#d29922">replicate</text>
+  <text x="440" y="154" font-family="system-ui, sans-serif" font-size="10" fill="#9198a1">over the</text>
+  <text x="440" y="168" font-family="system-ui, sans-serif" font-size="10" fill="#9198a1">storage network</text>
+
+  <polyline points="290,156 290,124" fill="none" stroke="#9198a1" stroke-width="1.2" stroke-dasharray="3 3"/>
+  <polyline points="350,230 350,124" fill="none" stroke="#9198a1" stroke-width="1.2" stroke-dasharray="3 3"/>
+  <text x="243" y="140" text-anchor="end" font-family="system-ui, sans-serif" font-size="10" fill="#9198a1">acks</text>
+
+  <polyline points="242,104 200,104 200,110" fill="none" stroke="#9198a1" stroke-width="1.2" stroke-dasharray="3 3"/>
+  <line x1="200" y1="110" x2="200" y2="128" stroke="#9198a1" stroke-width="1.2" stroke-dasharray="3 3"/>
+  <polyline points="200,128 90,128 90,110" fill="none" stroke="#9198a1" stroke-width="1.2" stroke-dasharray="3 3" marker-end="url(#b1)"/>
+  <text x="150" y="145" text-anchor="middle" font-family="system-ui, sans-serif" font-size="10" fill="#e6edf3">ack — only after replicas confirm</text>
+
+  <text x="30" y="320" font-family="system-ui, sans-serif" font-size="11" font-weight="600" fill="#e6edf3">Three network hops before the write completes.</text>
+  <text x="30" y="338" font-family="system-ui, sans-serif" font-size="11" fill="#9198a1">Buys replication, CephFS RWX across nodes, and snapshots.</text>
+  <text x="30" y="356" font-family="system-ui, sans-serif" font-size="11" fill="#9198a1">A node failure costs a HEALTH_WARN, not an outage.</text>
+
+  <!-- ================= right: node-local ================= -->
+  <text x="560" y="30" font-family="system-ui, sans-serif" font-size="12" font-weight="600" fill="#3fb950" letter-spacing="0.06em">TOPOLVM — NODE-LOCAL</text>
+
+  <rect x="560" y="56" width="120" height="48" rx="6" fill="#0d1117" stroke="#3d444d" stroke-width="1.5"/>
+  <text x="620" y="85" text-anchor="middle" font-family="system-ui, sans-serif" font-size="13" font-weight="600" fill="#e6edf3">pod</text>
+
+  <rect x="780" y="56" width="200" height="48" rx="6" fill="#0d1117" stroke="#3fb950" stroke-width="1.5"/>
+  <text x="880" y="77" text-anchor="middle" font-family="system-ui, sans-serif" font-size="13" font-weight="600" fill="#e6edf3">logical volume</text>
+  <text x="880" y="93" text-anchor="middle" font-family="system-ui, sans-serif" font-size="10" fill="#9198a1">vg-topolvm-work-01</text>
+
+  <rect x="780" y="162" width="200" height="44" rx="6" fill="#0d1117" stroke="#3d444d" stroke-width="1.5"/>
+  <text x="880" y="189" text-anchor="middle" font-family="system-ui, sans-serif" font-size="12" fill="#e6edf3">NVMe — same node</text>
+
+  <rect x="780" y="248" width="200" height="44" rx="6" fill="#161b22" stroke="#3d444d" stroke-width="1.5"/>
+  <text x="880" y="275" text-anchor="middle" font-family="system-ui, sans-serif" font-size="12" fill="#e6edf3">MinIO — off-node</text>
+
+  <line x1="686" y1="80" x2="772" y2="80" stroke="#3fb950" stroke-width="1.5" marker-end="url(#b3)"/>
+  <text x="729" y="70" text-anchor="middle" font-family="system-ui, sans-serif" font-size="10" fill="#9198a1">write</text>
+  <text x="729" y="97" text-anchor="middle" font-family="system-ui, sans-serif" font-size="10" fill="#3fb950">no network</text>
+
+  <line x1="880" y1="110" x2="880" y2="156" stroke="#3fb950" stroke-width="1.5" marker-end="url(#b3)"/>
+
+  <polyline points="770,80 740,80 740,128 620,128 620,110" fill="none" stroke="#9198a1" stroke-width="1.2" stroke-dasharray="3 3" marker-end="url(#b1)"/>
+  <text x="660" y="145" text-anchor="middle" font-family="system-ui, sans-serif" font-size="10" fill="#e6edf3">ack — immediately</text>
+
+  <line x1="880" y1="212" x2="880" y2="242" stroke="#9198a1" stroke-width="1.3" stroke-dasharray="4 3" marker-end="url(#b1)"/>
+  <text x="890" y="232" font-family="system-ui, sans-serif" font-size="10" fill="#9198a1">restic · dumps · nightly</text>
+
+  <text x="560" y="320" font-family="system-ui, sans-serif" font-size="11" font-weight="600" fill="#e6edf3">No hop at all — latency is whatever the device does.</text>
+  <text x="560" y="338" font-family="system-ui, sans-serif" font-size="11" fill="#9198a1">One copy, on one node: redundancy is bought back with backups.</text>
+  <text x="560" y="356" font-family="system-ui, sans-serif" font-size="11" fill="#9198a1">A node failure makes its volumes unreachable until it returns.</text>
+</svg>

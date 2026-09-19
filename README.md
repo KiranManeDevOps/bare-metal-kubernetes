@@ -19,27 +19,17 @@ choice.** Both are documented here, because I run both.
 
 ## The platform in one diagram
 
-```mermaid
-flowchart TB
-  U["Users · *.example.com"] -->|"HTTPS 443 · HTTP/3 UDP 443"| VIP["kube-vip ingress VIP<br/>10.0.10.60 TCP · 10.0.10.61 UDP"]
-  VIP --> TR["Traefik (DaemonSet, worker nodes)<br/>cert-manager · Let's Encrypt"]
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="docs/images/architecture-dark.svg">
+  <img src="docs/images/architecture-light.svg" alt="User traffic reaches applications through the ingress VIP and Traefik; operator kubectl traffic reaches the control plane through a separate API VIP. The two paths never meet. Application volumes are node-local, and copies are shipped off-node to object storage by VolSync restic and pg_dumpall.">
+</picture>
 
-  subgraph CL["RKE2 cluster · Calico CNI · default-deny NetworkPolicy"]
-    direction TB
-    CP["cp-01 — control plane<br/>etcd · kube-apiserver · scheduler<br/>HAProxy + keepalived → API VIP 10.0.10.10"]
-    TR --> APP["Application workloads<br/>work-01 … work-04"]
-    APP --> PVC[("PVC — storage plane<br/>Rook-Ceph or TopoLVM · see below")]
-  end
-
-  PVC -->|"VolSync + restic · encrypted, incremental"| S3[("MinIO — S3 compatible<br/>10.0.10.200")]
-  APP -->|"pg_dumpall CronJob · gzip stream"| S3
-  CL -.->|"metrics · traces · logs"| OBS["Prometheus · Grafana<br/>SigNoz (OpenTelemetry)"]
-
-  classDef edge fill:#1d4ed8,stroke:#1e3a8a,color:#fff
-  classDef store fill:#047857,stroke:#065f46,color:#fff
-  class VIP,TR edge
-  class PVC,S3 store
-```
+Two things this picture is making a claim about. **The planes are separate:** an
+application user never reaches the Kubernetes API, and cluster access never
+depends on the ingress being healthy — different addresses, different
+mechanisms, independent failure. **The data stays put; the copies move:** a
+volume lives on one node and never migrates, so durability comes from scheduled
+off-node backups rather than from the storage layer.
 
 ---
 
@@ -48,29 +38,10 @@ flowchart TB
 The control plane, edge and observability design above is shared. The storage
 plane is where they diverge:
 
-```mermaid
-flowchart TB
-  subgraph A["Cluster A — Rook-Ceph (replicated)"]
-    direction TB
-    PA["pod · ceph-work-0x"] -->|"RBD (RWO) · CephFS (RWX)"| RA{{"RADOS"}}
-    RA --> O1[("OSD<br/>ceph-work-01")]
-    RA --> O2[("OSD<br/>ceph-work-02")]
-    RA --> O3[("OSD<br/>ceph-work-03…06")]
-    O1 <-.->|"replication<br/>storage network"| O2
-    O2 <-.-> O3
-    MN["MON ×3 · MGR · MDS"] --- RA
-  end
-
-  subgraph B["Cluster B — TopoLVM (node-local)"]
-    direction TB
-    PB["pod · work-01"] -->|"RWO — one node; co-scheduled pods share"| LV["logical volume<br/>vg-topolvm-work-01"]
-    LV --> NV[("NVMe — work-01")]
-    PB2["pod · work-02"] --> LV2["logical volume<br/>vg-topolvm-work-02"]
-    LV2 --> NV2[("NVMe — work-02")]
-    NV -.->|"VolSync · pg_dumpall"| S3[("MinIO")]
-    NV2 -.-> S3
-  end
-```
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="docs/images/storage-models-dark.svg">
+  <img src="docs/images/storage-models-light.svg" alt="The two storage models compared by write path. With Rook-Ceph a write crosses the network to a primary OSD, is replicated to two further OSDs, and is acknowledged only once they confirm. With TopoLVM the write goes straight to a logical volume on the same node and is acknowledged immediately, with redundancy coming from scheduled backups to object storage instead.">
+</picture>
 
 In Cluster A a write crosses the network and is replicated before it is
 acknowledged, and any node can serve a volume. In Cluster B a write goes
