@@ -87,7 +87,7 @@ Full reasoning, with the decision matrix: **[docs/03-storage-decision.md](docs/0
 | [13 — Cluster relocation](docs/13-cluster-relocation.md) | A runbook for moving a cluster to a new network: snapshot, re-address, regenerate certificates, reset etcd membership, rejoin |
 | [14 — Security in depth](docs/14-security-deep-dive.md) | The RBAC model and how to verify it, the three identity classes, NetworkPolicy rollout strategy, TLS and secret handling |
 | [15 — Jenkins as immutable infrastructure](docs/15-jenkins-as-code.md) | Git as the source of truth for a CI/CD controller: Helm, configuration-as-code and a seed job, ephemeral agents across clusters, and what the approach costs |
-| [16 — Hybrid PostgreSQL](docs/16-postgres-hybrid-storage.md) | RAM-backed scratch space: the mechanism, a benchmark showing it buys almost nothing on local NVMe, and the precise conditions where it does pay |
+| [16 — Hybrid PostgreSQL](docs/16-postgres-hybrid-storage.md) | RAM-backed scratch storage that improved query performance 40–70% with durability untouched: the production storage split, the init-container and memory-budget hazards, and the bootstrap bug that silently disables the whole thing |
 
 ## Examples
 
