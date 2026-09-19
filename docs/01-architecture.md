@@ -164,3 +164,66 @@ external ports.
 | Storage | TopoLVM / Rook-Ceph | See [03 — Storage decision](03-storage-decision.md) |
 | Backup | VolSync + restic, `pg_dumpall` | Encrypted incremental file backups; consistent logical database dumps |
 | Object store | MinIO | S3-compatible backup target that stays on-premises |
+
+---
+
+## 1.6 Cluster A — replicated storage topology
+
+Everything above describes **Cluster B**, where storage is node-local. Cluster A
+runs the same control-plane, edge and observability design, and differs in one
+plane: storage is **replicated across nodes by Rook-Ceph**, which changes the
+node roles, the network, and what a node failure means.
+
+```mermaid
+flowchart TB
+  subgraph K8S["RKE2 cluster — same control plane and edge design"]
+    CP2["ceph-cp-01 · 10.0.20.11<br/>control plane"]
+    APP2["Application workloads<br/>ceph-work-01 … ceph-work-06"]
+  end
+
+  APP2 -->|"RBD — RWO block"| RADOS
+  APP2 -->|"CephFS — RWX shared"| RADOS
+
+  subgraph CEPH["Rook-Ceph"]
+    RADOS{{"RADOS — object store<br/>CRUSH places every object"}}
+    MON["MON ×3 — cluster map, quorum<br/>ceph-work-01/02/03"]
+    MGR["MGR — metrics, dashboard<br/>active + standby"]
+    MDS["MDS — CephFS metadata<br/>(only if CephFS is used)"]
+    OSD1[("OSD<br/>work-01")]
+    OSD2[("OSD<br/>work-02")]
+    OSD3[("OSD<br/>work-03")]
+    OSDN[("OSD …<br/>work-04…06")]
+    RADOS --- MON
+    RADOS --- MGR
+    RADOS --- MDS
+    RADOS --> OSD1
+    RADOS --> OSD2
+    RADOS --> OSD3
+    RADOS --> OSDN
+  end
+
+  OSD1 <-.->|"replication · recovery · scrubbing<br/>storage network 10.0.30.0/24"| OSD2
+  OSD2 <-.->|" "| OSD3
+  OSD3 <-.->|" "| OSDN
+```
+
+### What differs from Cluster B
+
+| | Cluster A (Rook-Ceph) | Cluster B (TopoLVM) |
+|---|---|---|
+| Node subnet | `10.0.20.0/24` | `10.0.10.0/24` |
+| Storage network | **Separate `10.0.30.0/24`** — replication traffic kept off the client path | None — I/O never leaves the node |
+| Storage nodes | All six workers contribute OSDs | Four workers, each with its own volume group |
+| A write | Client → primary OSD → replica OSDs → acknowledged | Straight to the local device |
+| Node failure | Ceph re-replicates; volumes stay available elsewhere | That node's volumes are unreachable until it returns |
+| RWX volumes | Yes, via CephFS | No — RWO only |
+| Extra daemons | MONs, MGRs, OSDs, and MDS for CephFS | One `lvmd` per node |
+
+**Why the separate storage network.** Every write costs a round-trip to each
+replica, and recovery after a failed disk floods the same links. Putting
+replication on its own network stops that traffic competing with application
+traffic — this is the single most important piece of the "10 GbE or faster"
+guidance in [03 — Storage decision](03-storage-decision.md).
+
+**Why three MONs.** MONs hold the cluster map and need a quorum, so an odd
+number ≥3 is required — with three, one can fail without losing quorum.

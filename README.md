@@ -28,7 +28,7 @@ flowchart TB
     direction TB
     CP["cp-01 — control plane<br/>etcd · kube-apiserver · scheduler<br/>HAProxy + keepalived → API VIP 10.0.10.10"]
     TR --> APP["Application workloads<br/>work-01 … work-04"]
-    APP --> PVC[("PVC — node-local NVMe<br/>TopoLVM · one VG + StorageClass per node")]
+    APP --> PVC[("PVC — storage plane<br/>Rook-Ceph or TopoLVM · see below")]
   end
 
   PVC -->|"VolSync + restic · encrypted, incremental"| S3[("MinIO — S3 compatible<br/>10.0.10.200")]
@@ -44,6 +44,38 @@ flowchart TB
 ---
 
 ## Two clusters, two storage models
+
+The control plane, edge and observability design above is shared. The storage
+plane is where they diverge:
+
+```mermaid
+flowchart TB
+  subgraph A["Cluster A — Rook-Ceph (replicated)"]
+    direction TB
+    PA["pod · ceph-work-0x"] -->|"RBD (RWO) · CephFS (RWX)"| RA{{"RADOS"}}
+    RA --> O1[("OSD<br/>work-01")]
+    RA --> O2[("OSD<br/>work-02")]
+    RA --> O3[("OSD<br/>work-03…06")]
+    O1 <-.->|"replication<br/>storage network"| O2
+    O2 <-.->|" "| O3
+    MN["MON ×3 · MGR · MDS"] --- RA
+  end
+
+  subgraph B["Cluster B — TopoLVM (node-local)"]
+    direction TB
+    PB["pod · work-01"] -->|"RWO, pinned to this node"| LV["logical volume<br/>vg-topolvm-work-01"]
+    LV --> NV[("NVMe — work-01")]
+    PB2["pod · work-02"] --> LV2["logical volume<br/>vg-topolvm-work-02"]
+    LV2 --> NV2[("NVMe — work-02")]
+    NV -.->|"VolSync · pg_dumpall"| S3[("MinIO")]
+    NV2 -.->|" "| S3
+  end
+```
+
+In Cluster A a write crosses the network and is replicated before it is
+acknowledged, and any node can serve a volume. In Cluster B a write goes
+straight to the local device and never leaves the node — so the redundancy
+Ceph provides in-cluster is bought back with scheduled off-node backups.
 
 | | **Cluster A** — replicated storage | **Cluster B** — node-local storage |
 |---|---|---|

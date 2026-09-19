@@ -30,7 +30,44 @@ does. The cost is that the data has exactly one copy, on one node.
 
 ---
 
-## 3.2 The decision matrix
+## 3.2 The two I/O paths
+
+The whole argument is visible in what a single write has to do.
+
+```mermaid
+flowchart LR
+  subgraph A["Rook-Ceph — replicated"]
+    direction LR
+    PA["pod"] --> RBD["RBD client"]
+    RBD -->|"network"| P1["primary OSD"]
+    P1 -->|"network"| R1["replica OSD"]
+    P1 -->|"network"| R2["replica OSD"]
+    R1 -.->|"ack"| P1
+    R2 -.->|"ack"| P1
+    P1 -.->|"ack"| PA
+  end
+
+  subgraph B["TopoLVM — node-local"]
+    direction LR
+    PB["pod"] --> LV["logical volume<br/>(same node)"]
+    LV --> DEV[("NVMe device")]
+    DEV -.->|"ack"| PB
+  end
+```
+
+**Ceph:** the write is acknowledged only after it has crossed the network to the
+primary OSD and been replicated. You are buying redundancy, RWX and snapshots,
+and paying for them in round-trips — which is why the network, not the disks,
+usually decides whether Ceph performs well.
+
+**TopoLVM:** the write reaches the device on the node the pod is already running
+on. Nothing traverses the network, so latency is whatever the hardware does —
+and there is exactly one copy of the data, which is why backup becomes
+load-bearing ([05 — Backup and DR](05-backup-and-dr.md)).
+
+---
+
+## 3.3 The decision matrix
 
 | Requirement | Rook-Ceph | TopoLVM |
 |---|---|---|
@@ -53,7 +90,7 @@ obligation seriously, because nothing else is protecting that data.
 
 ---
 
-## 3.3 What TopoLVM costs, and how to pay it
+## 3.4 What TopoLVM costs, and how to pay it
 
 Node-local storage has four consequences worth stating plainly.
 
@@ -76,7 +113,7 @@ a backup, and a backup you have never restored is only a hope.
 
 ---
 
-## 3.4 Thick or thin LVM
+## 3.5 Thick or thin LVM
 
 Having chosen TopoLVM, there is a second decision.
 
@@ -96,7 +133,7 @@ device-class change in the Helm values, not a redesign.
 
 ---
 
-## 3.5 Layout: one volume group and one StorageClass per node
+## 3.6 Layout: one volume group and one StorageClass per node
 
 Each node gets a volume group named after itself, and a StorageClass pinned to
 that node:
