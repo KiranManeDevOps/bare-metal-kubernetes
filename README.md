@@ -109,6 +109,12 @@ Full reasoning, with the decision matrix: **[docs/03-storage-decision.md](docs/0
 | [06 — Observability](docs/06-observability.md) | Prometheus, Grafana, SigNoz tracing, and a purpose-built cluster health service |
 | [07 — Security](docs/07-security.md) | Default-deny NetworkPolicy, RBAC, TLS, and how access is scoped |
 | [08 — Lessons learned](docs/08-lessons-learned.md) | Real incidents: what broke, why, and the fix |
+| [09 — Cluster A deep dive](docs/09-cluster-a-ceph.md) | Ceph internals: the daemons, CRUSH placement, pool and PG design, install/upgrade gating, day-2 operations, failure and recovery |
+| [10 — Cluster health service](docs/10-cluster-health-service.md) | What the ~70 checks actually test, the regression behind the forecasts, alert routing, and the read-only-Prometheus constraint |
+| [11 — Day-2 operations](docs/11-day-2-operations.md) | Routine checks, capacity management, adding and draining nodes, upgrades, etcd snapshots, a troubleshooting table, and thick vs thin LVM |
+| [12 — Backup and DR in depth](docs/12-backup-deep-dive.md) | Backup patterns, why databases need logical dumps, restic repository design, retention maths, cloud tiering, restore testing |
+| [13 — Cluster relocation](docs/13-cluster-relocation.md) | A runbook for moving a cluster to a new network: snapshot, re-address, regenerate certificates, reset etcd membership, rejoin |
+| [14 — Security in depth](docs/14-security-deep-dive.md) | The RBAC model and how to verify it, the three identity classes, NetworkPolicy rollout strategy, TLS and secret handling |
 
 ## Examples
 

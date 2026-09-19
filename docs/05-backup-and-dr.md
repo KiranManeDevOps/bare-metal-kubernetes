@@ -141,3 +141,9 @@ Worth stating explicitly, because these gaps are where recovery plans fail:
   makes the backup survive the room.
 - **An untested restore is not a backup.** Schedule real restores into a scratch
   namespace. The first time you try a restore should never be during an incident.
+
+> **In depth:** [12 — Backup and disaster recovery](12-backup-deep-dive.md)
+> covers the four backup patterns and when each applies, why a volume copy of a
+> running database is unrestorable, how restic's per-volume repositories and
+> content-defined chunking make deep retention nearly free, the options for
+> tiering to cloud archive, and how restore testing is actually scheduled.

@@ -136,6 +136,12 @@ in etcd membership and baked into certificates. Treat a re-addressing as a
 planned restore-from-snapshot with a rehearsed runbook — not as a network change
 that the cluster will simply absorb.
 
+> **The runbook itself:** [13 — Relocating a cluster to a new
+> network](13-cluster-relocation.md) generalises this incident into a numbered
+> procedure, including the after-effects that only appear once the control plane
+> is back — CNI components caching old peer addresses, and storage endpoint maps
+> holding a stale hostname-to-address table.
+
 ---
 
 ## What these have in common

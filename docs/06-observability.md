@@ -71,6 +71,12 @@ Everything it reports is already in Prometheus. The value is in the packaging:
 the checks encode what "healthy" means for *this* platform, the thresholds are
 tuned to it, and the routing puts each alert in front of whoever can act on it.
 
+> **In depth:** [10 — The cluster health service](10-cluster-health-service.md)
+> covers what all ~70 checks actually test and at what thresholds, the
+> least-squares regression behind the capacity forecasts, how a rule becomes a
+> Slack message or an email, and how the read-only constraint is enforced in the
+> manifest rather than merely asserted.
+
 ## 6.4 Alerting principles
 
 - **Alert on symptoms, not causes.** "Certificates renew in 3 days" is

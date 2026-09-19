@@ -91,3 +91,9 @@ operational ones:
 - **TLS 1.2 is the floor at the edge**, with a modern cipher list, and backend
   verification is relaxed only for in-cluster self-signed services — never for
   anything crossing a trust boundary.
+
+> **In depth:** [14 — Security](14-security-deep-dive.md) sets out the exact
+> developer permission set and how to verify it with `kubectl auth can-i`
+> impersonation, the third identity class (CI/CD) that sits alongside the two
+> access planes, a five-step NetworkPolicy rollout strategy, and why
+> distributing an internal CA beats disabling verification.

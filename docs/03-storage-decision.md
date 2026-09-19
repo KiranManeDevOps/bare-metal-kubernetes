@@ -166,3 +166,9 @@ label, looking only for its own volume group. Nodes without storage are simply
 never labelled, so no storage components schedule there at all.
 
 Working manifests: [`examples/storage/`](../examples/storage/).
+
+> **In depth:** [09 — Cluster A deep dive](09-cluster-a-ceph.md) for Ceph's
+> daemons, CRUSH placement, pool design and the operational surface you take on
+> with it. [11 — Day-2 operations, Part 2](11-day-2-operations.md) for the
+> thick-versus-thin write path and the two independent ways a thin pool fills —
+> the second of which can take running volumes offline.

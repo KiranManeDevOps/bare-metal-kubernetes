@@ -227,3 +227,9 @@ guidance in [03 — Storage decision](03-storage-decision.md).
 
 **Why three MONs.** MONs hold the cluster map and need a quorum, so an odd
 number ≥3 is required — with three, one can fail without losing quorum.
+
+> **In depth:** [09 — Cluster A deep dive](09-cluster-a-ceph.md) follows this
+> topology down to the mechanism: what each daemon owns, how a PVC becomes
+> objects placed by CRUSH, pool and placement-group design, the two-chart
+> install and its upgrade gating, and what failure and recovery actually look
+> like.
