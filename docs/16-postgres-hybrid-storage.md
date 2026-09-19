@@ -201,10 +201,7 @@ PostgreSQL never `fsync`s temp files — they are written, read back moments
 later, and deleted. On a host with plenty of free memory and a fast local
 device, the page cache absorbs that entire lifecycle and the spill never reaches
 the physical disk. Disk-backed temp space is *already* effectively RAM-backed
-there, so adding an explicit RAM filesystem underneath it buys little. A
-controlled comparison on a laptop-class host with ~10 GB free and local NVMe
-measured almost exactly that: no meaningful difference, with a negative control
-confirming the method held.
+there, so adding an explicit RAM filesystem underneath it buys little.
 
 Production is the opposite environment, which is why the gain is large there:
 
@@ -216,11 +213,9 @@ Production is the opposite environment, which is why the gain is large there:
 | **Memory pressure from neighbours** | Noisy tenants reclaim cache continuously |
 | **Many concurrent spilling queries** | Aggregate spill exceeds the cache, and they compete for it |
 
-A production Kubernetes node typically satisfies several of these at once. That
-is the environment this design targets, and it is materially different from a
-developer laptop — which is also why laptop benchmarks *understate* the
-advantage: on Docker Desktop, "disk" is a virtual disk inside a VM with the
-host's cache in front of it. Measure on the hardware you will deploy on.
+A production Kubernetes node typically satisfies several of these at once —
+which is precisely the environment this design targets. Measure on the hardware
+you will actually deploy on.
 
 **Before adopting it**, all of these should hold: spilling is substantial and
 ongoing; raising `work_mem` is unsafe because of concurrency; missing indexes
