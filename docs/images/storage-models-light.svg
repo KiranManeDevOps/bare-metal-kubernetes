@@ -40,9 +40,9 @@
   <text x="440" y="154" font-family="system-ui, sans-serif" font-size="10" fill="#656d76">over the</text>
   <text x="440" y="168" font-family="system-ui, sans-serif" font-size="10" fill="#656d76">storage network</text>
 
-  <polyline points="290,156 290,124" fill="none" stroke="#656d76" stroke-width="1.2" stroke-dasharray="3 3"/>
-  <polyline points="350,230 350,124" fill="none" stroke="#656d76" stroke-width="1.2" stroke-dasharray="3 3"/>
-  <text x="243" y="140" text-anchor="end" font-family="system-ui, sans-serif" font-size="10" fill="#656d76">acks</text>
+  <polyline points="290,156 290,112" fill="none" stroke="#656d76" stroke-width="1.2" stroke-dasharray="3 3" marker-end="url(#b1)"/>
+  <polyline points="350,230 350,112" fill="none" stroke="#656d76" stroke-width="1.2" stroke-dasharray="3 3" marker-end="url(#b1)"/>
+  <text x="322" y="150" text-anchor="middle" font-family="system-ui, sans-serif" font-size="10" fill="#656d76">acks</text>
 
   <polyline points="242,104 200,104 200,110" fill="none" stroke="#656d76" stroke-width="1.2" stroke-dasharray="3 3"/>
   <line x1="200" y1="110" x2="200" y2="128" stroke="#656d76" stroke-width="1.2" stroke-dasharray="3 3"/>
