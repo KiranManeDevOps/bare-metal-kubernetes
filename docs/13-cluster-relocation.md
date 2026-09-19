@@ -228,9 +228,9 @@ flowchart TD
   E --> F["Delete stale serving and peer certificates - keep CA files"]
   F --> G["Start control plane"]
   G --> H{"etcd reports peer URL mismatch?"}
-  H -- "Yes - expected on first start" --> I["Stop server, cluster-reset with snapshot restore"]
+  H -->|"Yes - expected on first start"| I["Stop server, cluster-reset with snapshot restore"]
   I --> G
-  H -- "No" --> J["Control plane healthy, new certs, etcd membership correct"]
+  H -->|"No"| J["Control plane healthy, new certs, etcd membership correct"]
   J --> K["Update worker config: server URL, node-ip - clear stale kubelet state"]
   K --> L["Rejoin workers - node token is unchanged"]
   L --> M["Fix components that cache peer IPs - CNI coordination layer, storage endpoint maps"]
