@@ -1,0 +1,22 @@
+# Never commit cluster credentials or rendered state
+kubeconfig
+*.kubeconfig
+*kubeconfig*.yaml
+credentials.json
+*-secrets.yaml
+*.key
+*.pem
+*.crt
+!**/ca.example.crt
+
+# Helm / local tooling
+charts/
+*.tgz
+.helm/
+
+# Editors and OS
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/
+*.swp

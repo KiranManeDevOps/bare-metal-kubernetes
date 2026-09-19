@@ -1,0 +1,99 @@
+# =============================================================================
+# Tuning the BUNDLED RKE2 Traefik addon.
+#
+# RKE2 ships Traefik as a bundled HelmChart addon. You ENABLE it by leaving
+# `rke2-traefik` out of the server config's `disable:` list, then OVERRIDE its
+# values with a HelmChartConfig of the SAME NAME AND NAMESPACE — helm-controller
+# merges this over the bundled chart's values.
+#
+#   kubectl apply -f examples/ingress/traefik-helmchartconfig.yaml
+#   kubectl -n kube-system rollout status ds/rke2-traefik --timeout=300s
+#
+# Do NOT install a separate Traefik chart of the same name, and do NOT add an
+# `ingress-controller:` key to the server config — it is a K3s key, invalid in
+# RKE2, and it crashes the server. See docs/08-lessons-learned.md.
+# =============================================================================
+apiVersion: helm.cattle.io/v1
+kind: HelmChartConfig
+metadata:
+  name: rke2-traefik
+  namespace: kube-system
+spec:
+  valuesContent: |-
+    # Run on the application nodes only, never the control plane.
+    nodeSelector:
+      node.example.com/role: app
+
+    # Expose on the kube-vip ingress VIP. The loadBalancerClass makes MetalLB
+    # ignore this service. EXTERNAL-IP stays <pending> until kube-vip is running
+    # and the address is free.
+    service:
+      type: LoadBalancer
+      spec:
+        loadBalancerClass: kube-vip.io/kube-vip-class
+        # Preserves the client source IP — there is no proxy hop in front to
+        # carry X-Forwarded-For.
+        externalTrafficPolicy: Local
+      annotations:
+        kube-vip.io/loadbalancerIPs: "10.0.10.60"
+
+    # HTTP/3 (QUIC). The bundled chart does not add UDP/443 to this service, so
+    # a separate UDP LoadBalancer on 10.0.10.61 carries QUIC; advertisedPort=443
+    # makes browsers send h3 to the same hostname:443.
+    ports:
+      websecure:
+        http3:
+          enabled: true
+
+    # --- Observability -------------------------------------------------------
+    # Per-entrypoint / router / service labels let the dashboards break traffic
+    # down per route. That is a cardinality choice — fine at this route count.
+    metrics:
+      prometheus:
+        entryPoint: metrics
+        addEntryPointsLabels: true
+        addRoutersLabels: true
+        addServicesLabels: true
+
+    # Distributed tracing to an OTLP collector (SigNoz) over HTTPS.
+    tracing:
+      addInternals: false          # don't trace Traefik's own internal routers
+      otlp:
+        enabled: true
+        http:
+          enabled: true
+          endpoint: https://collector.example.com/v1/traces
+
+    # TLS 1.2 floor with a modern cipher list.
+    tlsOptions:
+      default:
+        minVersion: VersionTLS12
+        cipherSuites:
+          - TLS_AES_128_GCM_SHA256
+          - TLS_AES_256_GCM_SHA384
+          - TLS_CHACHA20_POLY1305_SHA256
+          - TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256
+          - TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384
+
+    # Raw CLI flags — version-independent.
+    additionalArguments:
+      # In-cluster backends that serve their own self-signed TLS (management
+      # UIs, monitoring tools) otherwise fail with
+      # "x509: certificate signed by unknown authority". This is global; a
+      # per-service transport alone was not honoured.
+      - "--serversTransport.insecureSkipVerify=true"
+      - "--entryPoints.websecure.http3.advertisedPort=443"
+      - "--entryPoints.websecure.transport.respondingTimeouts.idleTimeout=180s"
+      - "--entryPoints.websecure.transport.respondingTimeouts.readTimeout=60s"
+      - "--entryPoints.websecure.transport.respondingTimeouts.writeTimeout=60s"
+      - "--serversTransport.maxIdleConnsPerHost=200"
+      - "--serversTransport.forwardingTimeouts.idleConnTimeout=120s"
+      - "--serversTransport.forwardingTimeouts.dialTimeout=2s"
+      - "--serversTransport.forwardingTimeouts.responseHeaderTimeout=30s"
+      - "--ping=true"
+      - "--api.dashboard=true"
+      - "--api.insecure=false"     # dashboard exposed separately, behind auth
+
+    resources:
+      requests: { cpu: 200m, memory: 256Mi }
+      limits:   { cpu: "2",  memory: 1Gi }

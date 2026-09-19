@@ -1,0 +1,101 @@
+# =============================================================================
+# Default-deny NetworkPolicy set — apply PER APPLICATION NAMESPACE.
+#
+# Moves a namespace from "anything can reach anything" to "deny by default,
+# allow what is needed". Five policies:
+#   1. default-deny-all         — the baseline
+#   2. allow-dns-egress         — or nothing resolves, and every symptom lies
+#   3. allow-same-namespace     — pods in this namespace may talk to each other
+#   4. allow-ingress-from-edge  — so published applications are reachable
+#   5. allow-egress-apiserver   — for in-cluster SDKs and clients
+#
+# HOW TO USE
+#   1. Replace every <NS> with the target namespace.
+#   2. Apply to ONE non-critical namespace first and watch for broken traffic.
+#   3. Roll out namespace by namespace.
+#
+# Do NOT blanket-apply default-deny to system namespaces (CNI, storage,
+# metallb, kube-system, ingress, monitoring) — each needs its own allow rules,
+# tested individually.
+#
+# Requires a CNI that enforces NetworkPolicy (Calico here).
+# =============================================================================
+---
+# 1. Deny everything, both directions. Everything below re-opens one path.
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: default-deny-all
+  namespace: <NS>
+spec:
+  podSelector: {}                   # every pod in the namespace
+  policyTypes: [Ingress, Egress]
+  # No rules == nothing allowed.
+---
+# 2. DNS. Without this, name resolution fails and the symptoms point everywhere
+#    except at NetworkPolicy.
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: allow-dns-egress
+  namespace: <NS>
+spec:
+  podSelector: {}
+  policyTypes: [Egress]
+  egress:
+    - to:
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: kube-system
+      ports:
+        - { protocol: UDP, port: 53 }
+        - { protocol: TCP, port: 53 }
+---
+# 3. Intra-namespace traffic, both directions.
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: allow-same-namespace
+  namespace: <NS>
+spec:
+  podSelector: {}
+  policyTypes: [Ingress, Egress]
+  ingress:
+    - from:
+        - podSelector: {}
+  egress:
+    - to:
+        - podSelector: {}
+---
+# 4. Ingress from the edge, so Traefik can reach this namespace's services.
+#    kubernetes.io/metadata.name is set automatically on every namespace.
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: allow-ingress-from-edge
+  namespace: <NS>
+spec:
+  podSelector: {}                   # tighten to the exposed pods if you prefer
+  policyTypes: [Ingress]
+  ingress:
+    - from:
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: kube-system
+---
+# 5. Egress to the Kubernetes API for in-cluster clients. Add each
+#    control-plane address as the cluster grows.
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: allow-egress-apiserver
+  namespace: <NS>
+spec:
+  podSelector: {}
+  policyTypes: [Egress]
+  egress:
+    - to:
+        - ipBlock:
+            cidr: 10.0.10.11/32     # cp-01
+      ports:
+        - { protocol: TCP, port: 6443 }

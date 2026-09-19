@@ -1,0 +1,71 @@
+# =============================================================================
+# VolSync ReplicationSource — encrypted, incremental file backups to S3 (restic).
+#
+#   copyMethod: Direct is MANDATORY with thick LVM — there are no snapshots to
+#   clone from, so the mover reads the live volume. It co-mounts the source
+#   volume, so it runs on the node that volume is pinned to.
+#
+# The repository Secret is created OUT OF BAND and referenced by name only —
+# it holds the S3 endpoint, credentials and RESTIC_PASSWORD, and must never be
+# committed. Losing RESTIC_PASSWORD makes the repository unrecoverable.
+#
+# Retention is what makes this a backup rather than a copy: a replica of a
+# corrupted or deleted file is just a faithful copy of the mistake.
+# =============================================================================
+apiVersion: volsync.backube/v1alpha1
+kind: ReplicationSource
+metadata:
+  name: app-data-backup
+  namespace: platform
+spec:
+  sourcePVC: app-data
+  trigger:
+    schedule: "30 17 * * *"          # daily, outside business hours (UTC)
+  restic:
+    repository: restic-app-data      # Secret name — created out of band
+    copyMethod: Direct
+    pruneIntervalDays: 14
+    cacheCapacity: 2Gi
+    # The cache must use a class that can bind on the node holding the source.
+    cacheStorageClassName: local-ssd-work-01
+    # Run the mover as root so it can read files owned by any UID; otherwise
+    # restic reports warnings and silently skips unreadable files.
+    moverSecurityContext:
+      runAsUser: 0
+      runAsGroup: 0
+      fsGroup: 0
+      runAsNonRoot: false
+    # Trust the object store's certificate when it is signed by a private CA.
+    customCA:
+      configMapName: object-store-ca
+      key: ca.crt
+    retain:
+      daily: 7
+      weekly: 4
+      monthly: 3
+---
+# Restore sketch — the destination side.
+#   1. Scale the workload to 0 so it releases the volume (RWO).
+#   2. Apply a ReplicationDestination like this one.
+#   3. Wait for the sync, then scale the workload back up.
+#
+# apiVersion: volsync.backube/v1alpha1
+# kind: ReplicationDestination
+# metadata:
+#   name: app-data-restore
+#   namespace: platform
+# spec:
+#   trigger:
+#     manual: restore-once
+#   restic:
+#     repository: restic-app-data
+#     copyMethod: Direct
+#     destinationPVC: app-data
+#     cacheCapacity: 2Gi
+#     cacheStorageClassName: local-ssd-work-01
+#     # restoreAsOf: "2026-09-01T00:00:00Z"   # point-in-time restore
+#     moverSecurityContext:
+#       runAsUser: 0
+#       runAsGroup: 0
+#       fsGroup: 0
+#       runAsNonRoot: false

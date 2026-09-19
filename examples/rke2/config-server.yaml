@@ -1,0 +1,60 @@
+# =============================================================================
+# RKE2 server (control plane) — /etc/rancher/rke2/config.yaml
+#
+# Placeholders: cp-01 = control-plane node, 10.0.10.11 = its address,
+# 10.0.10.10 = the API VIP held by keepalived. Substitute your own.
+# =============================================================================
+
+# Every name and address a client may use to reach the API must be a SAN, or
+# kubectl fails TLS verification. Add names BEFORE they are needed — changing
+# this later means regenerating certificates.
+tls-san:
+  - k8s-api.example.com
+  - 10.0.10.10          # API VIP (keepalived) — what kubeconfigs point at
+  - 10.0.10.11          # the node's own address
+  - cp-01
+
+cluster-name: onprem-cluster-01
+cluster-cidr: 10.42.0.0/16
+service-cidr: 10.43.0.0/16
+cluster-dns: 10.43.0.10
+cluster-domain: cluster.local
+
+cluster-init: true
+write-kubeconfig-mode: "0644"
+
+# Calico instead of the bundled Canal, for NetworkPolicy enforcement.
+# The bundled nginx ingress is disabled because Traefik is the edge; Traefik
+# itself is left ENABLED (absent from this list) and tuned via HelmChartConfig.
+#
+# WARNING: do NOT add an `ingress-controller:` key here. It is a K3s key,
+# invalid in RKE2, and setting it crashes the server process.
+disable:
+  - rke2-canal
+  - rke2-ingress-nginx
+cni:
+  - calico
+
+# Pin RKE2 to the intended interface. Without these, a multi-homed machine may
+# advertise the wrong address — and the address ends up baked into etcd.
+node-ip: 10.0.10.11
+advertise-address: 10.0.10.11
+etcd-expose-metrics: true
+
+node-name: cp-01
+
+# NO node-taint here. RKE2's bundled add-on installer Jobs (CNI, CoreDNS) are
+# pinned to the control-plane node; a custom taint leaves them Pending and the
+# CNI never installs. Workloads are kept off with nodeSelector instead.
+node-label:
+  - "node.example.com/role=platform"
+
+# Reservations so workloads can never starve etcd / apiserver on a node that is
+# both control plane and (lightly) a worker. Size these to the real machine.
+kubelet-arg:
+  - "max-pods=150"
+  - "system-reserved=cpu=2,memory=4Gi"        # OS, sshd, containerd, kubelet
+  - "kube-reserved=cpu=4,memory=12Gi"         # control-plane pods + headroom
+  - "eviction-hard=memory.available<8%,nodefs.available<10%,imagefs.available<10%"
+  - "kube-reserved-cgroup=/podruntime.slice"
+  - "system-reserved-cgroup=/system.slice"

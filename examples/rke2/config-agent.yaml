@@ -1,0 +1,36 @@
+# =============================================================================
+# RKE2 agent (worker) — /etc/rancher/rke2/config.yaml
+#
+# Install with INSTALL_RKE2_TYPE="agent", then enable rke2-agent.service.
+# =============================================================================
+
+# Port 9345 is RKE2's supervisor (node join), NOT the API port.
+server: https://10.0.10.11:9345
+token: <NODE_TOKEN>            # from /var/lib/rancher/rke2/server/node-token
+
+node-name: work-01             # work-01 … work-04 (application + storage)
+node-ip: 10.0.10.21            # .21 .22 .23 .24 respectively
+
+node-label:
+  - "node.example.com/role=app"
+
+kubelet-arg:
+  - "max-pods=250"
+  - "system-reserved=cpu=4,memory=16Gi"
+  - "kube-reserved=cpu=2,memory=8Gi"
+  - "eviction-hard=memory.available<5%,nodefs.available<10%"
+
+# -----------------------------------------------------------------------------
+# Variant — batch worker (work-05, 10.0.10.25): no local storage, and tainted so
+# only workloads that explicitly tolerate it are scheduled there.
+#
+# node-name: work-05
+# node-ip: 10.0.10.25
+# node-taint:
+#   - "dedicated=batch:NoSchedule"
+# node-label:
+#   - "node.example.com/role=batch"
+#
+# Storage nodes additionally get labelled AFTER joining (not here):
+#   kubectl label node work-01 topolvm.io/storage=true
+# -----------------------------------------------------------------------------

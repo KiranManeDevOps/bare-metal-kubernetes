@@ -1,0 +1,75 @@
+# =============================================================================
+# TopoLVM Helm values — thick LVM, one volume group per node.
+#
+#   helm upgrade --install topolvm topolvm/topolvm -n topolvm-system \
+#     -f examples/storage/topolvm-values.yaml
+#
+# Model:
+#   * THICK — each volume is a plain linear LV reserved up front. Lowest,
+#     flattest latency; NO CSI snapshots (VolSync therefore uses copyMethod:
+#     Direct). See docs/03-storage-decision.md.
+#   * NODE-LOCAL, RWO — a volume binds to one node and pins its pod there.
+#   * PER-NODE VOLUME GROUP named after the node, so `vgs` on a host is
+#     self-describing:  work-01 -> vg-topolvm-work-01
+#
+# Because the volume group name differs per node, each node needs its own lvmd
+# configuration, aimed by the built-in kubernetes.io/hostname label.
+#
+# Prerequisite: cert-manager (the admission webhook needs a certificate), and
+# `vgcreate vg-topolvm-<node>` already done on each storage node.
+# =============================================================================
+
+lvmd:
+  managed: true
+
+  # ---- Primary lvmd: work-01 ----
+  nodeSelector:
+    kubernetes.io/hostname: work-01
+  deviceClasses:
+    - name: ssd                          # shared class name across all nodes;
+      volume-group: vg-topolvm-work-01   # only the volume group differs
+      default: true
+      spare-gb: 5                        # headroom kept free in the VG
+
+  # ---- One independent lvmd per additional node ----
+  # An lvmd whose volume group does not exist yet stays not-ready until it is
+  # created — create the VG on the host first.
+  additionalConfigs:
+    - nodeSelector: { kubernetes.io/hostname: work-02 }
+      deviceClasses:
+        - { name: ssd, volume-group: vg-topolvm-work-02, default: true, spare-gb: 5 }
+    - nodeSelector: { kubernetes.io/hostname: work-03 }
+      deviceClasses:
+        - { name: ssd, volume-group: vg-topolvm-work-03, default: true, spare-gb: 5 }
+    - nodeSelector: { kubernetes.io/hostname: work-04 }
+      deviceClasses:
+        - { name: ssd, volume-group: vg-topolvm-work-04, default: true, spare-gb: 5 }
+
+node:
+  # The CSI node plugin runs on every storage node — a common label, not per-node.
+  # Nodes without this label never run storage components at all.
+  nodeSelector:
+    topolvm.io/storage: "true"
+
+controller:
+  replicaCount: 2        # survives one node reboot
+
+# Capacity-aware scheduling through the standard CSIStorageCapacity API, read by
+# the stock kube-scheduler. No scheduler extender is deployed.
+storageCapacityTracking:
+  enabled: true
+
+# MUST stay off while storageCapacityTracking is on. The pod mutating webhook
+# stamps a `topolvm.io/capacity` extended-resource request onto every pod that
+# mounts a volume — a resource only the (not deployed) scheduler extender
+# advertises — leaving every such pod permanently Unschedulable.
+# See docs/08-lessons-learned.md.
+webhook:
+  podMutatingWebhook:
+    enabled: false
+
+# StorageClasses are managed in storageclasses.yaml (per-node pinning, Retain,
+# no default), so the chart's own class is not wanted.
+storageClasses: []
+
+priorityClassName: system-cluster-critical

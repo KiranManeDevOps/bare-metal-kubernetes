@@ -1,0 +1,46 @@
+# =============================================================================
+# cert-manager ClusterIssuers — Let's Encrypt, HTTP-01 solved through Traefik.
+#
+# Always test with the STAGING issuer first. The production endpoint has strict
+# rate limits, and a misconfigured DNS record burns through them quickly.
+#
+# Requirements for HTTP-01 to succeed:
+#   * a PUBLIC A record for every hostname — a name pointing at a private
+#     address fails with "no valid A records", however correct the cluster is;
+#   * the cluster able to reach its own public address, because cert-manager
+#     self-checks the challenge before asking the CA to validate. Where the
+#     network cannot route a LAN client back to its own public IP, enable
+#     hairpin NAT at the firewall.
+#
+# After fixing a DNS record, delete the failed Order to retry immediately:
+#   kubectl -n <ns> delete order -l cert-manager.io/certificate-name=<cert>
+# =============================================================================
+apiVersion: cert-manager.io/v1
+kind: ClusterIssuer
+metadata:
+  name: letsencrypt-prod
+spec:
+  acme:
+    server: https://acme-v02.api.letsencrypt.org/directory
+    email: platform@example.com          # expiry notices go here
+    privateKeySecretRef:
+      name: letsencrypt-prod-key
+    solvers:
+      - http01:
+          ingress:
+            ingressClassName: traefik
+---
+apiVersion: cert-manager.io/v1
+kind: ClusterIssuer
+metadata:
+  name: letsencrypt-staging
+spec:
+  acme:
+    server: https://acme-staging-v02.api.letsencrypt.org/directory
+    email: platform@example.com
+    privateKeySecretRef:
+      name: letsencrypt-staging-key
+    solvers:
+      - http01:
+          ingress:
+            ingressClassName: traefik

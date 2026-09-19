@@ -1,0 +1,83 @@
+# =============================================================================
+# Per-node StorageClasses — one class per storage node.
+#
+# TopoLVM labels every storage node with:  topology.topolvm.io/node=<hostname>
+# `allowedTopologies` below restricts each class to one such value, so a volume
+# using that class can only ever be provisioned on that node.
+#
+#   kubectl get nodes -L topology.topolvm.io/node
+#
+# Deliberate choices:
+#   * NO default class — every PVC must name its class, or it stays Pending.
+#     This prevents a volume silently landing on the wrong node.
+#   * reclaimPolicy: Retain — deleting a PVC leaves the data in place.
+#   * WaitForFirstConsumer — binding waits for scheduling, so the volume is
+#     created where the pod actually lands.
+#   * No VolumeSnapshotClass — thick LVM has no CSI snapshots.
+#
+#   kubectl apply -f examples/storage/storageclasses.yaml
+# =============================================================================
+---
+apiVersion: storage.k8s.io/v1
+kind: StorageClass
+metadata:
+  name: local-ssd-work-01
+provisioner: topolvm.io
+parameters:
+  "topolvm.io/device-class": "ssd"
+  "csi.storage.k8s.io/fstype": "xfs"
+volumeBindingMode: WaitForFirstConsumer
+allowVolumeExpansion: true
+reclaimPolicy: Retain
+allowedTopologies:
+  - matchLabelExpressions:
+      - key: topology.topolvm.io/node
+        values: ["work-01"]
+---
+apiVersion: storage.k8s.io/v1
+kind: StorageClass
+metadata:
+  name: local-ssd-work-02
+provisioner: topolvm.io
+parameters:
+  "topolvm.io/device-class": "ssd"
+  "csi.storage.k8s.io/fstype": "xfs"
+volumeBindingMode: WaitForFirstConsumer
+allowVolumeExpansion: true
+reclaimPolicy: Retain
+allowedTopologies:
+  - matchLabelExpressions:
+      - key: topology.topolvm.io/node
+        values: ["work-02"]
+---
+apiVersion: storage.k8s.io/v1
+kind: StorageClass
+metadata:
+  name: local-ssd-work-03
+provisioner: topolvm.io
+parameters:
+  "topolvm.io/device-class": "ssd"
+  "csi.storage.k8s.io/fstype": "xfs"
+volumeBindingMode: WaitForFirstConsumer
+allowVolumeExpansion: true
+reclaimPolicy: Retain
+allowedTopologies:
+  - matchLabelExpressions:
+      - key: topology.topolvm.io/node
+        values: ["work-03"]
+---
+apiVersion: storage.k8s.io/v1
+kind: StorageClass
+metadata:
+  name: local-ssd-work-04
+provisioner: topolvm.io
+parameters:
+  "topolvm.io/device-class": "ssd"
+  "csi.storage.k8s.io/fstype": "xfs"
+volumeBindingMode: WaitForFirstConsumer
+allowVolumeExpansion: true
+reclaimPolicy: Retain
+allowedTopologies:
+  - matchLabelExpressions:
+      - key: topology.topolvm.io/node
+        values: ["work-04"]

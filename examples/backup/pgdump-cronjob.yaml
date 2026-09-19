@@ -1,0 +1,67 @@
+# =============================================================================
+# PostgreSQL logical backup — pg_dumpall streamed straight to object storage.
+#
+# Why a dump and not a volume copy: a file-level copy of a running database is
+# inconsistent and may not restore. pg_dumpall produces a consistent export and
+# includes roles.
+#
+# Why streamed: `pg_dumpall | gzip | mc pipe` never writes to local disk, so a
+# large database cannot fill the node it happens to run on.
+#
+# Credentials come from Secrets created out of band — nothing sensitive here.
+# =============================================================================
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: pgdump-primary
+  namespace: platform
+spec:
+  schedule: "30 17 * * *"            # daily, outside business hours (UTC)
+  concurrencyPolicy: Forbid          # never overlap a long-running dump
+  successfulJobsHistoryLimit: 3
+  failedJobsHistoryLimit: 3
+  jobTemplate:
+    spec:
+      backoffLimit: 1
+      template:
+        spec:
+          restartPolicy: Never
+          volumes:
+            - name: bin
+              emptyDir: {}
+          initContainers:
+            # The postgres image has no S3 client; borrow one for this Job only.
+            - name: get-mc
+              image: minio/mc:latest
+              command: ["sh", "-c", "cp /usr/bin/mc /binshare/mc"]
+              volumeMounts:
+                - { name: bin, mountPath: /binshare }
+          containers:
+            - name: dump
+              # Client version must be >= the server version. A newer client
+              # dumps an older server safely; the reverse is not true.
+              image: postgres:17
+              env:
+                - { name: PGHOST,   value: "primary-postgres" }
+                - { name: INSTANCE, value: "primary" }
+                - { name: S3_URL,   value: "https://10.0.10.200:9000" }
+                - name: PGUSER
+                  valueFrom: { secretKeyRef: { name: postgres-primary-credentials, key: username } }
+                - name: PGPASSWORD
+                  valueFrom: { secretKeyRef: { name: postgres-primary-credentials, key: password } }
+                - name: AK
+                  valueFrom: { secretKeyRef: { name: object-store-creds, key: AWS_ACCESS_KEY_ID } }
+                - name: SK
+                  valueFrom: { secretKeyRef: { name: object-store-creds, key: AWS_SECRET_ACCESS_KEY } }
+              command:
+                - sh
+                - -c
+                - >
+                  set -euo pipefail;
+                  /binshare/mc alias set backup "$S3_URL" "$AK" "$SK" >/dev/null;
+                  KEY="onprem-backup/pgdump/$INSTANCE/$(date +%Y/%m/%d)/$INSTANCE-$(date +%Y%m%d-%H%M%S).sql.gz";
+                  echo "dumping $INSTANCE -> $KEY";
+                  pg_dumpall -h "$PGHOST" -U "$PGUSER" | gzip | /binshare/mc pipe "backup/$KEY";
+                  echo "done: $KEY"
+              volumeMounts:
+                - { name: bin, mountPath: /binshare }

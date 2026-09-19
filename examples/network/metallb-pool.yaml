@@ -1,0 +1,38 @@
+# =============================================================================
+# MetalLB address pool + L2 advertisement.
+#
+# MetalLB hands real LAN addresses to Service type=LoadBalancer. Layer 2 mode:
+# one node answers ARP for each address — no router or BGP configuration, which
+# suits a single L2 segment.
+#
+# The pool must NOT contain:
+#   * node addresses            (10.0.10.11, .21-.25)
+#   * the API VIP               (10.0.10.10 — keepalived)
+#   * the ingress VIPs          (10.0.10.60, .61 — kube-vip)
+#   * anything inside the DHCP scope
+#
+# Apply after the MetalLB controller and speakers are Running.
+# =============================================================================
+apiVersion: metallb.io/v1beta1
+kind: IPAddressPool
+metadata:
+  name: lan-pool
+  namespace: metallb-system
+spec:
+  addresses:
+    - 10.0.10.100-10.0.10.150
+  autoAssign: true
+  avoidBuggyIPs: true
+---
+apiVersion: metallb.io/v1beta1
+kind: L2Advertisement
+metadata:
+  name: lan-l2
+  namespace: metallb-system
+spec:
+  ipAddressPools:
+    - lan-pool
+  # Optional: keep announcements on the application nodes only.
+  # nodeSelectors:
+  #   - matchLabels:
+  #       node.example.com/role: app

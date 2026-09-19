@@ -1,0 +1,108 @@
+# =============================================================================
+# kube-vip — Service LoadBalancer mode (ARP / layer 2), worker nodes only.
+#
+# Gives the ingress its own VIPs, announced by ARP from a worker:
+#   10.0.10.60  TCP 80/443   (Traefik)
+#   10.0.10.61  UDP 443      (Traefik QUIC / HTTP-3 — see the separate service)
+#
+# Coexisting with MetalLB:
+#   * MetalLB owns 10.0.10.100-.150.
+#   * kube-vip is restricted with lb_class_only to its own loadBalancerClass, so
+#     it claims ONLY services that ask for that class and never competes with
+#     MetalLB for the rest.
+#   * The ingress VIPs sit outside MetalLB's pool — no overlap by construction.
+#
+# The control-plane VIP is OFF: the API VIP 10.0.10.10 belongs to keepalived and
+# is never touched here.
+#
+# Pre-flight:
+#   1. Find the primary NIC on the node subnet:
+#        ip -o -4 route show to default | awk '{print $5}'
+#   2. Label ONLY the worker nodes (never the control plane — it holds the API VIP):
+#        kubectl label node work-01 work-02 work-03 work-04 kube-vip/iface=eth0
+# =============================================================================
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: kube-vip
+  namespace: kube-system
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: system:kube-vip-role
+rules:
+  # Least privilege: exactly what VIP election and service updates require.
+  - apiGroups: [""]
+    resources: ["services", "services/status", "nodes", "endpoints"]
+    verbs: ["list", "get", "watch", "update"]
+  - apiGroups: ["coordination.k8s.io"]
+    resources: ["leases"]
+    verbs: ["list", "get", "watch", "update", "create"]
+  - apiGroups: ["discovery.k8s.io"]
+    resources: ["endpointslices"]
+    verbs: ["list", "get", "watch", "update"]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: system:kube-vip-binding
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: system:kube-vip-role
+subjects:
+  - kind: ServiceAccount
+    name: kube-vip
+    namespace: kube-system
+---
+apiVersion: apps/v1
+kind: DaemonSet
+metadata:
+  name: kube-vip-ds
+  namespace: kube-system
+  labels:
+    app.kubernetes.io/name: kube-vip-ds
+spec:
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: kube-vip-ds
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: kube-vip-ds
+    spec:
+      # Placement is label-driven: only nodes carrying kube-vip/iface run this.
+      nodeSelector:
+        kube-vip/iface: "eth0"
+      serviceAccountName: kube-vip
+      hostNetwork: true
+      containers:
+        - name: kube-vip
+          image: ghcr.io/kube-vip/kube-vip:v1.2.0   # pin a version you have vetted
+          imagePullPolicy: IfNotPresent
+          args: ["manager"]
+          env:
+            - { name: vip_arp,       value: "true" }    # layer 2 / ARP
+            - { name: vip_interface, value: "eth0" }    # NIC on the node subnet
+            - { name: vip_cidr,      value: "32" }
+            - { name: dns_mode,      value: "first" }
+            # Control-plane VIP off — keepalived owns the API VIP.
+            - { name: cp_enable,     value: "false" }
+            # Service LoadBalancer mode, with per-service leader election.
+            - { name: svc_enable,    value: "true" }
+            - { name: svc_election,  value: "true" }
+            # Claim only our own class, so MetalLB keeps its services.
+            - { name: lb_class_only, value: "true" }
+            - { name: lb_class_name, value: "kube-vip.io/kube-vip-class" }
+          securityContext:
+            capabilities:
+              add: ["NET_ADMIN", "NET_RAW"]
+          resources:
+            requests: { cpu: "50m",  memory: "64Mi" }
+            limits:   { cpu: "200m", memory: "128Mi" }
+      tolerations:
+        - effect: NoSchedule
+          operator: Exists
+  updateStrategy:
+    type: RollingUpdate
