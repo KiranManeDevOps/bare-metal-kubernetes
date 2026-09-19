@@ -75,7 +75,8 @@ load-bearing ([05 — Backup and DR](05-backup-and-dr.md)).
 | Enterprise NVMe (power-loss protection) | **Strongly recommended** | Recommended, not required |
 | Node count | 5+ (3 MONs, spare capacity to rebalance) | Any (1 disk = 1 node's storage) |
 | Spare CPU/RAM per node for storage daemons | **Required** (OSDs are hungry) | Negligible (an LVM driver) |
-| RWX — many pods, many nodes, one volume | **Yes** (CephFS) | No — RWO only |
+| Shared access — many pods, **many nodes**, one volume | **Yes** (CephFS) | No — one node only |
+| Shared access — many pods on the **same node** | Yes | **Yes** — RWO means one *node*, so co-scheduled pods share the volume |
 | CSI snapshots and clones | **Yes** (RBD) | No with thick LVM; yes with thin |
 | Survives a node failure without restore | **Yes**, automatically | No — the volume is unreachable until the node returns |
 | Volume expansion | Yes | Yes |
@@ -94,9 +95,14 @@ obligation seriously, because nothing else is protecting that data.
 
 Node-local storage has four consequences worth stating plainly.
 
-1. **RWO only, pinned to a node.** A volume binds to one node and the pod follows
-   it. Anything needing shared read-write access across nodes needs a different
-   answer — CephFS, NFS, or an object store.
+1. **RWO means one *node*, not one pod.** A volume binds to a single node, and
+   the pods that use it are scheduled there. Several pods **can** mount it at the
+   same time provided they are co-scheduled on that node — that is what
+   `ReadWriteOnce` means in Kubernetes, and it is a genuinely useful property:
+   a sidecar, an importer or a batch job can share a volume with the workload
+   that owns it. Use `ReadWriteOncePod` when you deliberately want to forbid
+   that. What is **not** available is shared read-write access from pods on
+   *different* nodes — that needs CephFS, NFS, or an object store.
 2. **A node outage makes its volumes unreachable.** The data is intact, not lost,
    but it is offline until the node returns. Stateful workloads need either an
    application-level replica on another node or a restore path measured against

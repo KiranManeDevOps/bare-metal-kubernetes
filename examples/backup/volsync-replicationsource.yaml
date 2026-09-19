@@ -45,7 +45,8 @@ spec:
       monthly: 3
 ---
 # Restore sketch — the destination side.
-#   1. Scale the workload to 0 so it releases the volume (RWO).
+#   1. Scale the workload to 0 so nothing writes during the restore. RWO binds
+#      the volume to one node, so the mover runs there too.
 #   2. Apply a ReplicationDestination like this one.
 #   3. Wait for the sync, then scale the workload back up.
 #

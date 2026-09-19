@@ -216,7 +216,7 @@ flowchart TB
 | Storage nodes | All six workers contribute OSDs | Four workers, each with its own volume group |
 | A write | Client → primary OSD → replica OSDs → acknowledged | Straight to the local device |
 | Node failure | Ceph re-replicates; volumes stay available elsewhere | That node's volumes are unreachable until it returns |
-| RWX volumes | Yes, via CephFS | No — RWO only |
+| Shared volumes | Across any node, via CephFS | Many pods, but all on the volume's node (RWO = one node) |
 | Extra daemons | MONs, MGRs, OSDs, and MDS for CephFS | One `lvmd` per node |
 
 **Why the separate storage network.** Every write costs a round-trip to each

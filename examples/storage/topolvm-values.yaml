@@ -8,7 +8,9 @@
 #   * THICK — each volume is a plain linear LV reserved up front. Lowest,
 #     flattest latency; NO CSI snapshots (VolSync therefore uses copyMethod:
 #     Direct). See docs/03-storage-decision.md.
-#   * NODE-LOCAL, RWO — a volume binds to one node and pins its pod there.
+#   * NODE-LOCAL, RWO — a volume binds to one NODE, not one pod. Pods that use
+#     it are scheduled onto that node, and several co-scheduled pods may share
+#     it. Cross-node shared access is what is unavailable.
 #   * PER-NODE VOLUME GROUP named after the node, so `vgs` on a host is
 #     self-describing:  work-01 -> vg-topolvm-work-01
 #

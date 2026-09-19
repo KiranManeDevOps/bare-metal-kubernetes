@@ -118,8 +118,10 @@ psql -h primary-postgres -U postgres -f primary-<ts>.sql   # includes roles
 
 **A file volume, from restic**
 
-1. Scale the workload to zero so it releases the volume (RWO — nothing else can
-   mount it while the pod holds it).
+1. Scale the workload to zero, so the restore writes into a volume nobody is
+   changing underneath it. Note that RWO binds the volume to one *node*: the
+   mover pod has to run on that node, which is why the cache class must be one
+   that can bind there.
 2. Create a `ReplicationDestination` in `Direct` mode pointing at the same restic
    repository secret and the target volume, optionally with `restoreAsOf` for a
    point in time.

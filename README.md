@@ -53,9 +53,9 @@ flowchart TB
   subgraph A["Cluster A — Rook-Ceph (replicated)"]
     direction TB
     PA["pod · ceph-work-0x"] -->|"RBD (RWO) · CephFS (RWX)"| RA{{"RADOS"}}
-    RA --> O1[("OSD<br/>work-01")]
-    RA --> O2[("OSD<br/>work-02")]
-    RA --> O3[("OSD<br/>work-03…06")]
+    RA --> O1[("OSD<br/>ceph-work-01")]
+    RA --> O2[("OSD<br/>ceph-work-02")]
+    RA --> O3[("OSD<br/>ceph-work-03…06")]
     O1 <-.->|"replication<br/>storage network"| O2
     O2 <-.->|" "| O3
     MN["MON ×3 · MGR · MDS"] --- RA
@@ -63,7 +63,7 @@ flowchart TB
 
   subgraph B["Cluster B — TopoLVM (node-local)"]
     direction TB
-    PB["pod · work-01"] -->|"RWO, pinned to this node"| LV["logical volume<br/>vg-topolvm-work-01"]
+    PB["pod · work-01"] -->|"RWO — one node; co-scheduled pods share"| LV["logical volume<br/>vg-topolvm-work-01"]
     LV --> NV[("NVMe — work-01")]
     PB2["pod · work-02"] --> LV2["logical volume<br/>vg-topolvm-work-02"]
     LV2 --> NV2[("NVMe — work-02")]
@@ -81,7 +81,7 @@ Ceph provides in-cluster is bought back with scheduled off-node backups.
 |---|---|---|
 | Storage | **Rook-Ceph** (RBD + CephFS) | **TopoLVM** (thick LVM on NVMe) |
 | Topology | 1 control plane + 6 workers | 1 control plane + 5 workers |
-| Access modes | RWO **and RWX** | RWO only, node-pinned |
+| Access modes | RWO, plus **RWX across nodes** via CephFS | RWO — one *node*; many pods on that node may share |
 | Snapshots | Yes (RBD) | No (thick LVM) |
 | Redundancy | Synchronous replication across nodes | None in-cluster — async copies + dumps |
 | I/O path | Client → network → OSD/RADOS | Straight to the local NVMe device |
